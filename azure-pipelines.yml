@@ -7,15 +7,14 @@ trigger:
 - master
 
 variables:
-
   # Azure Resource Manager connection created during pipeline creation
   azureSubscription: 'MyAzureServiceConnection'
   
   # Web app name
   webAppName: 'java-spring-boot'
 
-  # Agent VM image name
-  vmImageName: 'ubuntu-latest'
+  # Agent pool name (self-hosted agent pool)
+  agentPoolName: 'my-personal-computer'  # Replace with your self-hosted agent pool name
 
 stages:
 - stage: Build
@@ -24,7 +23,7 @@ stages:
   - job: MavenPackageAndPublishArtifacts
     displayName: Maven Package and Publish Artifacts
     pool:
-      vmImage: $(vmImageName)
+      name: $(agentPoolName)  # Use self-hosted agent pool
     
     steps:
     - task: Maven@3
@@ -52,8 +51,8 @@ stages:
   - deployment: DeployLinuxWebApp
     displayName: Deploy Linux Web App
     environment: 'development'
-    pool: 
-      vmImage: $(vmImageName)
+    pool:
+      name: $(agentPoolName)  # Use self-hosted agent pool
     strategy:
       runOnce:
         deploy:
