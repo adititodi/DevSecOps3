@@ -5,9 +5,8 @@ steps:
 - task: Maven@3
   displayName: 'Maven build and test'
   inputs:
-    mavenPomFile: 'app/pom.xml'  # Adjust path based on the actual location of your pom.xml
-    options: '-Xmx2g'
-    goals: 'clean install'
+    mavenPomFile: 'app/pom.xml'  # Path to your pom.xml
+    goals: 'clean install'  # Specify the goals (clean install)
 
 - task: PublishTestResults@2
   displayName: 'Publish Test Results'
