@@ -1,14 +1,19 @@
 pool:
-  vmImage: 'ubuntu-latest'  # Updated to latest Ubuntu version
-  demands: maven
+  vmImage: 'ubuntu-latest'
 
 steps:
 - task: Maven@3
   displayName: 'Maven build and test'
   inputs:
-    mavenPomFile: 'app/pom.xml'  # Adjusted path for pom.xml if it's at the root
-    options: '-Xmx2g'  # You can adjust heap memory for Maven if needed
+    mavenPomFile: 'app/pom.xml'  # Adjust path based on the actual location of your pom.xml
+    options: '-Xmx2g'
     goals: 'clean install'
+
+- task: PublishTestResults@2
+  displayName: 'Publish Test Results'
+  inputs:
+    testResultsFiles: '**/target/test-*.xml'
+    testRunTitle: 'Maven Test Results'
 
 - task: CopyFiles@2
   displayName: 'Copy .jar files to artifact staging directory'
@@ -16,7 +21,7 @@ steps:
     SourceFolder: '$(System.DefaultWorkingDirectory)'
     Contents: '**/*.jar'
     TargetFolder: '$(Build.ArtifactStagingDirectory)'
-  condition: succeeded()  # Only run if build succeeded
+  condition: succeeded()
 
 - task: PublishBuildArtifacts@1
   displayName: 'Publish Artifact: drop'
@@ -24,4 +29,4 @@ steps:
     PathtoPublish: '$(Build.ArtifactStagingDirectory)'
     ArtifactName: 'drop'
     publishLocation: 'Container'
-  condition: succeeded()  # Only run if build succeeded
+  condition: succeeded()
