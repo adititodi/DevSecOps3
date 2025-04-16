@@ -1,16 +1,18 @@
 pool:
-  vmImage: 'ubuntu-16.04' # Hosted Ubuntu 1604
+  vmImage: 'ubuntu-latest'  # Updated to latest Ubuntu version
   demands: maven
 
 steps:
 - task: Maven@3
-  displayName: 'Maven app/pom.xml'
+  displayName: 'Maven build and test'
   inputs:
-    mavenPomFile: 'app/pom.xml'
-    codeCoverageToolOption: Cobertura
+    mavenPomFile: 'pom.xml'  # Adjust if your pom.xml is located elsewhere
+    options: '-Xmx2g'  # You can adjust heap memory for Maven if needed
+    goals: 'clean install'
+    codeCoverageToolOption: Jacoco  # Changed to Jacoco for coverage reporting
 
 - task: CopyFiles@2
-  displayName: 'Copy Files to: $(build.artifactstagingdirectory)'
+  displayName: 'Copy .jar files to artifact staging directory'
   inputs:
     SourceFolder: '$(system.defaultworkingdirectory)'
     Contents: '**/*.jar'
@@ -21,4 +23,6 @@ steps:
   displayName: 'Publish Artifact: drop'
   inputs:
     PathtoPublish: '$(build.artifactstagingdirectory)'
+    ArtifactName: 'drop'
+    publishLocation: 'Container'
   condition: succeededOrFailed()
