@@ -6,23 +6,22 @@ steps:
 - task: Maven@3
   displayName: 'Maven build and test'
   inputs:
-    mavenPomFile: 'app/pom.xml'  # Adjusted path for pom.xml in a subfolder
+    mavenPomFile: 'pom.xml'  # Adjusted path for pom.xml if it's at the root
     options: '-Xmx2g'  # You can adjust heap memory for Maven if needed
     goals: 'clean install'
-    codeCoverageToolOption: Jacoco  # Changed to Jacoco for coverage reporting
 
 - task: CopyFiles@2
   displayName: 'Copy .jar files to artifact staging directory'
   inputs:
-    SourceFolder: '$(system.defaultworkingdirectory)'
+    SourceFolder: '$(System.DefaultWorkingDirectory)'
     Contents: '**/*.jar'
-    TargetFolder: '$(build.artifactstagingdirectory)'
-  condition: succeededOrFailed()
+    TargetFolder: '$(Build.ArtifactStagingDirectory)'
+  condition: succeeded()  # Only run if build succeeded
 
 - task: PublishBuildArtifacts@1
   displayName: 'Publish Artifact: drop'
   inputs:
-    PathtoPublish: '$(build.artifactstagingdirectory)'
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
     ArtifactName: 'drop'
     publishLocation: 'Container'
-  condition: succeededOrFailed()
+  condition: succeeded()  # Only run if build succeeded
