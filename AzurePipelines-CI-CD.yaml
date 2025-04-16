@@ -6,7 +6,7 @@ steps:
 - task: Maven@3
   displayName: 'Maven build and test'
   inputs:
-    mavenPomFile: 'pom.xml'  # Adjusted path for pom.xml if it's at the root
+    mavenPomFile: 'app/pom.xml'  # Adjusted path for pom.xml if it's at the root
     options: '-Xmx2g'  # You can adjust heap memory for Maven if needed
     goals: 'clean install'
 
