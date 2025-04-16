@@ -6,7 +6,7 @@ steps:
 - task: Maven@3
   displayName: 'Maven build and test'
   inputs:
-    mavenPomFile: 'pom.xml'  # Adjust if your pom.xml is located elsewhere
+    mavenPomFile: 'app/pom.xml'  # Adjusted path for pom.xml in a subfolder
     options: '-Xmx2g'  # You can adjust heap memory for Maven if needed
     goals: 'clean install'
     codeCoverageToolOption: Jacoco  # Changed to Jacoco for coverage reporting
