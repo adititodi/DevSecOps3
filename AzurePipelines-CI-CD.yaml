@@ -265,6 +265,12 @@ steps:
     publishJUnitResults: true
     testResultsFiles: '**/target/surefire-reports/TEST-*.xml'
 
+# 🔍 SonarCloud Analyze (Missing Task)
+- task: SonarCloudAnalyze@1
+  displayName: 'SonarCloud Analyze'
+  inputs:
+    sonarQube: 'SonarQube Cloud'
+
 # 📊 Publish SonarCloud Quality Gate Result
 - task: SonarCloudPublish@1
   displayName: 'Publish SonarCloud Quality Gate Result'
