@@ -242,15 +242,15 @@ variables:
 steps:
 
 # 🔍 SonarCloud Prepare (Built-in Task)
-- task: SonarCloudPrepare@1
+- task: SonarCloudPrepare@2
   displayName: 'Prepare SonarCloud Analysis'
   inputs:
     SonarCloud: 'SonarQube Cloud'
     organization: '321114110002'
     scannerMode: 'MSBuild'  # You can use Maven or MSBuild depending on your project type
     configMode: 'manual'
-    cliProjectKey: '321114110002_JAVA-CI-CD'
-    cliProjectName: 'JAVA CI CD'
+    projectKey: '321114110002_JAVA-CI-CD'
+    projectName: 'JAVA CI CD'
 
 # ⚙️ Maven Build + Test
 - task: Maven@3
