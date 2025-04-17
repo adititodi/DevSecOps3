@@ -237,23 +237,22 @@ pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  # Store this securely in the pipeline UI -> Library -> Variables -> mark as secret!
   SONAR_TOKEN: 'fb1463925152041200956e10e4de6c128c3b0792'
 
 steps:
 
-# 🔍 SonarCloud Prepare (CLI mode)
+# 🔍 SonarCloud Prepare (Built-in Task)
 - task: SonarCloudPrepare@1
   displayName: 'Prepare SonarCloud Analysis'
   inputs:
     SonarCloud: 'SonarQube Cloud'
     organization: '321114110002'
-    scannerMode: 'CLI'
+    scannerMode: 'MSBuild'  # You can use Maven or MSBuild depending on your project type
     configMode: 'manual'
     cliProjectKey: '321114110002_JAVA-CI-CD'
     cliProjectName: 'JAVA-CI-CD'
 
-# ⚙️ Maven Build + Test only (NO Sonar here)
+# ⚙️ Maven Build + Test
 - task: Maven@3
   displayName: 'Maven clean install and test'
   inputs:
@@ -265,26 +264,6 @@ steps:
     mavenVersionOption: 'Default'
     publishJUnitResults: true
     testResultsFiles: '**/target/surefire-reports/TEST-*.xml'
-
-# 📥 Install SonarScanner CLI
-- script: |
-    echo "Installing SonarScanner CLI..."
-    wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
-    unzip sonar-scanner-cli-5.0.1.3006-linux.zip
-    mv sonar-scanner-5.0.1.3006-linux sonar-scanner
-    echo "##vso[task.setvariable variable=PATH]$(System.DefaultWorkingDirectory)/sonar-scanner/bin:$(PATH)"
-  displayName: 'Install SonarScanner CLI'
-
-# ▶️ SonarCloud Scan (CLI)
-- script: |
-    sonar-scanner \
-      -Dsonar.projectKey=321114110002_JAVA-CI-CD \
-      -Dsonar.organization=321114110002 \
-      -Dsonar.sources=. \
-      -Dsonar.java.binaries=target/classes \
-      -Dsonar.host.url=https://sonarcloud.io \
-      -Dsonar.login=$(SONAR_TOKEN)
-  displayName: 'Run SonarCloud CLI Scan'
 
 # 📊 Publish SonarCloud Quality Gate Result
 - task: SonarCloudPublish@1
