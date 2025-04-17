@@ -130,7 +130,7 @@ steps:
   inputs:
     SonarCloud: 'SonarQube Cloud'
     organization: '321114110002'
-    scannerMode: 'CLI'
+    scannerMode: 'Other'
     configMode: 'manual'
     cliProjectKey: '321114110002_JAVA-CI-CD'
     cliProjectName: 'JAVA-CI-CD'
