@@ -113,6 +113,123 @@
 #     targetUrl: 'https://boardgameapp-ayghd3hyfcbkbafd.centralindia-01.azurewebsites.net'
 #     threshold: 'High'
 #     failBuildOnThreshold: true
+# trigger:
+# - main
+
+# pool:
+#   vmImage: 'ubuntu-latest'
+
+# variables:
+#   # Store this securely in the pipeline UI -> Library -> Variables -> mark as secret!
+#   SONAR_TOKEN: 'fb1463925152041200956e10e4de6c128c3b0792'
+
+# steps:
+
+# # 🔍 SonarCloud Prepare (CLI mode)
+# - task: SonarCloudPrepare@1
+#   displayName: 'Prepare SonarCloud Analysis'
+#   inputs:
+#     SonarCloud: 'SonarQube Cloud'
+#     organization: '321114110002'
+#     scannerMode: 'CLI'
+#     configMode: 'manual'
+#     cliProjectKey: '321114110002_JAVA-CI-CD'
+#     cliProjectName: 'JAVA-CI-CD'
+
+# # ⚙️ Maven Build + Test only (NO Sonar here)
+# - task: Maven@3
+#   displayName: 'Maven clean install and test'
+#   inputs:
+#     mavenPomFile: 'app/pom.xml'
+#     goals: 'clean install'
+#     options: '-X -e'
+#     javaHomeOption: 'JDKVersion'
+#     jdkVersionOption: '1.11'
+#     mavenVersionOption: 'Default'
+#     publishJUnitResults: true
+#     testResultsFiles: '**/target/surefire-reports/TEST-*.xml'
+
+# # ▶️ SonarCloud Scan (CLI)
+# - script: |
+#     sonar-scanner \
+#       -Dsonar.projectKey=321114110002_JAVA-CI-CD \
+#       -Dsonar.organization=321114110002 \
+#       -Dsonar.sources=. \
+#       -Dsonar.host.url=https://sonarcloud.io \
+#       -Dsonar.login=$(SONAR_TOKEN)
+#   displayName: 'Run SonarCloud CLI Scan'
+
+# # 📊 Publish SonarCloud Quality Gate Result
+# - task: SonarCloudPublish@1
+#   displayName: 'Publish SonarCloud Quality Gate Result'
+#   inputs:
+#     pollingTimeoutSec: '300'
+
+# # ✅ Publish JUnit Test Results
+# - task: PublishTestResults@2
+#   displayName: 'Publish Test Results'
+#   inputs:
+#     testResultsFiles: '**/target/surefire-reports/TEST-*.xml'
+#     testRunTitle: 'Maven Test Results'
+
+# # 📦 Copy jar to artifacts
+# - task: CopyFiles@2
+#   displayName: 'Copy .jar files to artifact staging directory'
+#   inputs:
+#     SourceFolder: '$(System.DefaultWorkingDirectory)'
+#     Contents: '**/*.jar'
+#     TargetFolder: '$(Build.ArtifactStagingDirectory)'
+
+# # 📤 Publish Artifact
+# - task: PublishBuildArtifacts@1
+#   displayName: 'Publish Artifact: drop'
+#   inputs:
+#     PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+#     ArtifactName: 'drop'
+#     publishLocation: 'Container'
+
+# # 🚀 Deploy to Azure Web App (Linux)
+# - task: AzureWebApp@1
+#   displayName: 'Deploy to Azure Web App'
+#   inputs:
+#     azureSubscription: 'AzureforStudents'
+#     appType: 'webAppLinux'
+#     appName: 'BoardGameApp'
+#     package: '$(Build.ArtifactStagingDirectory)/**/*.jar'
+#     runtimeStack: 'JAVA|11-java11'
+
+# # 🛡️ OWASP ZAP Security Scan via Docker
+# - task: Bash@3
+#   displayName: 'Run OWASP ZAP Scan via Docker'
+#   inputs:
+#     targetType: 'inline'
+#     script: |
+#       echo "Pulling ZAP Docker image..."
+#       docker pull softwaresecurityproject/zap-stable:latest
+
+#       echo "Preparing output directory..."
+#       mkdir -p $(System.DefaultWorkingDirectory)/zap
+#       chmod 777 $(System.DefaultWorkingDirectory)/zap
+
+#       echo "Running ZAP full scan..."
+#       docker run --rm -u 0 \
+#         -v $(System.DefaultWorkingDirectory)/zap:/zap/wrk/:rw \
+#         softwaresecurityproject/zap-stable \
+#         zap-full-scan.py \
+#         -t https://boardgameapp-ayghd3hyfcbkbafd.centralindia-01.azurewebsites.net \
+#         -J zap_report.json \
+#         -r zap_report.html \
+#         -x zap_report.xml \
+#         --fail-on-error || exit 1
+
+# # 📥 Publish ZAP Scan Reports
+# - task: PublishBuildArtifacts@1
+#   displayName: 'Publish ZAP Scan Report'
+#   inputs:
+#     PathtoPublish: '$(System.DefaultWorkingDirectory)/zap'
+#     ArtifactName: 'ZAP-Report'
+#     publishLocation: 'Container'
+
 trigger:
 - main
 
@@ -148,6 +265,15 @@ steps:
     mavenVersionOption: 'Default'
     publishJUnitResults: true
     testResultsFiles: '**/target/surefire-reports/TEST-*.xml'
+
+# 📥 Install SonarScanner CLI
+- script: |
+    echo "Installing SonarScanner CLI..."
+    wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
+    unzip sonar-scanner-cli-5.0.1.3006-linux.zip
+    mv sonar-scanner-5.0.1.3006-linux sonar-scanner
+    echo "##vso[task.setvariable variable=PATH]$(System.DefaultWorkingDirectory)/sonar-scanner/bin:$(PATH)"
+  displayName: 'Install SonarScanner CLI'
 
 # ▶️ SonarCloud Scan (CLI)
 - script: |
@@ -229,3 +355,4 @@ steps:
     PathtoPublish: '$(System.DefaultWorkingDirectory)/zap'
     ArtifactName: 'ZAP-Report'
     publishLocation: 'Container'
+
