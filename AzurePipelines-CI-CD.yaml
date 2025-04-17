@@ -281,6 +281,7 @@ steps:
       -Dsonar.projectKey=321114110002_JAVA-CI-CD \
       -Dsonar.organization=321114110002 \
       -Dsonar.sources=. \
+      -Dsonar.java.binaries=target/classes \
       -Dsonar.host.url=https://sonarcloud.io \
       -Dsonar.login=$(SONAR_TOKEN)
   displayName: 'Run SonarCloud CLI Scan'
@@ -355,4 +356,3 @@ steps:
     PathtoPublish: '$(System.DefaultWorkingDirectory)/zap'
     ArtifactName: 'ZAP-Report'
     publishLocation: 'Container'
-
