@@ -120,47 +120,59 @@ pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  SONAR_TOKEN: 'fb1463925152041200956e10e4de6c128c3b0792'  # Replace with secret in real use
+  # Store this securely in the pipeline UI -> Library -> Variables -> mark as secret!
+  SONAR_TOKEN: 'fb1463925152041200956e10e4de6c128c3b0792'
 
 steps:
 
-# 🔍 SonarCloud Prepare
+# 🔍 SonarCloud Prepare (CLI mode)
 - task: SonarCloudPrepare@1
   displayName: 'Prepare SonarCloud Analysis'
   inputs:
     SonarCloud: 'SonarQube Cloud'
     organization: '321114110002'
-    scannerMode: 'Other'
+    scannerMode: 'CLI'
     configMode: 'manual'
     cliProjectKey: '321114110002_JAVA-CI-CD'
     cliProjectName: 'JAVA-CI-CD'
 
-# ⚙️ Maven Build + Sonar Scan
+# ⚙️ Maven Build + Test only (NO Sonar here)
 - task: Maven@3
-  displayName: 'Maven clean install, build, test, and sonar scan'
+  displayName: 'Maven clean install and test'
   inputs:
-    mavenPomFile: 'app/pom.xml'
-    goals: 'clean install verify sonar:sonar'
-    options: >
-      -Dsonar.projectKey=321114110002_JAVA-CI-CD
-      -Dsonar.organization=321114110002
-      -Dsonar.host.url=https://sonarcloud.io
-      -Dsonar.login=$(SONAR_TOKEN)
+    mavenPomFile: 'pom.xml'
+    goals: 'clean install'
+    options: '-X -e'
+    javaHomeOption: 'Path'
+    jdkVersionOption: '1.11'
+    mavenVersionOption: 'Default'
+    publishJUnitResults: true
+    testResultsFiles: '**/target/surefire-reports/TEST-*.xml'
 
-# 📊 Publish SonarCloud Report
+# ▶️ SonarCloud Scan (CLI)
+- script: |
+    sonar-scanner \
+      -Dsonar.projectKey=321114110002_JAVA-CI-CD \
+      -Dsonar.organization=321114110002 \
+      -Dsonar.sources=. \
+      -Dsonar.host.url=https://sonarcloud.io \
+      -Dsonar.login=$(SONAR_TOKEN)
+  displayName: 'Run SonarCloud CLI Scan'
+
+# 📊 Publish SonarCloud Quality Gate Result
 - task: SonarCloudPublish@1
   displayName: 'Publish SonarCloud Quality Gate Result'
   inputs:
     pollingTimeoutSec: '300'
 
-# ✅ Publish JUnit test results
+# ✅ Publish JUnit Test Results
 - task: PublishTestResults@2
   displayName: 'Publish Test Results'
   inputs:
-    testResultsFiles: '**/target/test-*.xml'
+    testResultsFiles: '**/target/surefire-reports/TEST-*.xml'
     testRunTitle: 'Maven Test Results'
 
-# 📦 Copy jar file to artifacts
+# 📦 Copy jar to artifacts
 - task: CopyFiles@2
   displayName: 'Copy .jar files to artifact staging directory'
   inputs:
@@ -168,7 +180,7 @@ steps:
     Contents: '**/*.jar'
     TargetFolder: '$(Build.ArtifactStagingDirectory)'
 
-# 📤 Publish artifact
+# 📤 Publish Artifact
 - task: PublishBuildArtifacts@1
   displayName: 'Publish Artifact: drop'
   inputs:
@@ -208,7 +220,7 @@ steps:
         -J zap_report.json \
         -r zap_report.html \
         -x zap_report.xml \
-        --fail-on-error || exit 1  # Fail the task if ZAP fails
+        --fail-on-error || exit 1
 
 # 📥 Publish ZAP Scan Reports
 - task: PublishBuildArtifacts@1
