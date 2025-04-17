@@ -140,7 +140,7 @@ steps:
 - task: Maven@3
   displayName: 'Maven clean install and test'
   inputs:
-    mavenPomFile: 'pom.xml'
+    mavenPomFile: 'app/pom.xml'
     goals: 'clean install'
     options: '-X -e'
     javaHomeOption: 'Path'
