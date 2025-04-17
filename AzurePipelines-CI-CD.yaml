@@ -113,7 +113,6 @@
 #     targetUrl: 'https://boardgameapp-ayghd3hyfcbkbafd.centralindia-01.azurewebsites.net'
 #     threshold: 'High'
 #     failBuildOnThreshold: true
-
 trigger:
 - main
 
@@ -138,10 +137,10 @@ steps:
 
 # ⚙️ Maven Build + Sonar Scan
 - task: Maven@3
-  displayName: 'Maven build, test, and sonar scan'
+  displayName: 'Maven clean install, build, test, and sonar scan'
   inputs:
     mavenPomFile: 'app/pom.xml'
-    goals: 'clean verify sonar:sonar'
+    goals: 'clean install verify sonar:sonar'
     options: >
       -Dsonar.projectKey=321114110002_JAVA-CI-CD
       -Dsonar.organization=321114110002
@@ -168,7 +167,6 @@ steps:
     SourceFolder: '$(System.DefaultWorkingDirectory)'
     Contents: '**/*.jar'
     TargetFolder: '$(Build.ArtifactStagingDirectory)'
-  condition: succeeded()
 
 # 📤 Publish artifact
 - task: PublishBuildArtifacts@1
@@ -177,7 +175,6 @@ steps:
     PathtoPublish: '$(Build.ArtifactStagingDirectory)'
     ArtifactName: 'drop'
     publishLocation: 'Container'
-  condition: succeeded()
 
 # 🚀 Deploy to Azure Web App (Linux)
 - task: AzureWebApp@1
@@ -211,7 +208,7 @@ steps:
         -J zap_report.json \
         -r zap_report.html \
         -x zap_report.xml \
-        --fail-on-error
+        --fail-on-error || exit 1  # Fail the task if ZAP fails
 
 # 📥 Publish ZAP Scan Reports
 - task: PublishBuildArtifacts@1
