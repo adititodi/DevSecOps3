@@ -1,19 +1,167 @@
+# pool:
+#   vmImage: 'ubuntu-latest'
+
+# steps:
+# - task: Maven@3
+#   displayName: 'Maven build and test'
+#   inputs:
+#     mavenPomFile: 'app/pom.xml'  # Path to your pom.xml
+#     goals: 'clean install'  # Specify the goals (clean install)
+
+# - task: PublishTestResults@2
+#   displayName: 'Publish Test Results'
+#   inputs:
+#     testResultsFiles: '**/target/test-*.xml'
+#     testRunTitle: 'Maven Test Results'
+
+# - task: CopyFiles@2
+#   displayName: 'Copy .jar files to artifact staging directory'
+#   inputs:
+#     SourceFolder: '$(System.DefaultWorkingDirectory)'
+#     Contents: '**/*.jar'
+#     TargetFolder: '$(Build.ArtifactStagingDirectory)'
+#   condition: succeeded()
+
+# - task: PublishBuildArtifacts@1
+#   displayName: 'Publish Artifact: drop'
+#   inputs:
+#     PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+#     ArtifactName: 'drop'
+#     publishLocation: 'Container'
+#   condition: succeeded()
+
+# trigger:
+# - main
+
+# pool:
+#   vmImage: 'ubuntu-latest'
+
+# variables:
+#   SONAR_TOKEN: 'fb1463925152041200956e10e4de6c128c3b0792'  # Replace with secret in real use
+
+# steps:
+
+# # 🔍 SonarCloud Prepare
+# - task: SonarCloudPrepare@1
+#   displayName: 'Prepare SonarCloud Analysis'
+#   inputs:
+#     SonarCloud: 'SonarQube Cloud'
+#     organization: '321114110002'
+#     scannerMode: 'CLI'
+#     configMode: 'manual'
+#     cliProjectKey: '321114110002_JAVA-CI-CD'
+#     cliProjectName: 'JAVA-CI-CD'
+
+# # ⚙️ Maven Build + Sonar Scan
+# - task: Maven@3
+#   displayName: 'Maven build, test, and sonar scan'
+#   inputs:
+#     mavenPomFile: 'app/pom.xml'
+#     goals: 'clean verify sonar:sonar'
+#     options: >
+#       -Dsonar.projectKey=321114110002_JAVA-CI-CD
+#       -Dsonar.organization=321114110002
+#       -Dsonar.host.url=https://sonarcloud.io
+#       -Dsonar.login=$(SONAR_TOKEN)
+
+# # 📊 Publish SonarCloud Report
+# - task: SonarCloudPublish@1
+#   displayName: 'Publish SonarCloud Quality Gate Result'
+#   inputs:
+#     pollingTimeoutSec: '300'
+
+# # ✅ Publish JUnit test results
+# - task: PublishTestResults@2
+#   displayName: 'Publish Test Results'
+#   inputs:
+#     testResultsFiles: '**/target/test-*.xml'
+#     testRunTitle: 'Maven Test Results'
+
+# # 📦 Copy jar file to artifacts
+# - task: CopyFiles@2
+#   displayName: 'Copy .jar files to artifact staging directory'
+#   inputs:
+#     SourceFolder: '$(System.DefaultWorkingDirectory)'
+#     Contents: '**/*.jar'
+#     TargetFolder: '$(Build.ArtifactStagingDirectory)'
+#   condition: succeeded()
+
+# # 📤 Publish artifact
+# - task: PublishBuildArtifacts@1
+#   displayName: 'Publish Artifact: drop'
+#   inputs:
+#     PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+#     ArtifactName: 'drop'
+#     publishLocation: 'Container'
+#   condition: succeeded()
+
+# # 🚀 Deploy to Azure Web App (Linux)
+# - task: AzureWebApp@1
+#   displayName: 'Deploy to Azure Web App'
+#   inputs:
+#     azureSubscription: 'AzureforStudents'
+#     appType: 'webAppLinux'
+#     appName: 'BoardGameApp'
+#     package: '$(Build.ArtifactStagingDirectory)/**/*.jar'
+#     runtimeStack: 'JAVA|11-java11'
+
+# # 🛡️ OWASP ZAP Security Scan
+# - task: ZapScan@1
+#   displayName: 'OWASP ZAP Scan'
+#   inputs:
+#     zapApiScan: false
+#     targetUrl: 'https://boardgameapp-ayghd3hyfcbkbafd.centralindia-01.azurewebsites.net'
+#     threshold: 'High'
+#     failBuildOnThreshold: true
+
+trigger:
+- main
+
 pool:
   vmImage: 'ubuntu-latest'
 
-steps:
-- task: Maven@3
-  displayName: 'Maven build and test'
-  inputs:
-    mavenPomFile: 'app/pom.xml'  # Path to your pom.xml
-    goals: 'clean install'  # Specify the goals (clean install)
+variables:
+  SONAR_TOKEN: 'fb1463925152041200956e10e4de6c128c3b0792'  # Replace with secret in real use
 
+steps:
+
+# 🔍 SonarCloud Prepare
+- task: SonarCloudPrepare@1
+  displayName: 'Prepare SonarCloud Analysis'
+  inputs:
+    SonarCloud: 'SonarQube Cloud'
+    organization: '321114110002'
+    scannerMode: 'CLI'
+    configMode: 'manual'
+    cliProjectKey: '321114110002_JAVA-CI-CD'
+    cliProjectName: 'JAVA-CI-CD'
+
+# ⚙️ Maven Build + Sonar Scan
+- task: Maven@3
+  displayName: 'Maven build, test, and sonar scan'
+  inputs:
+    mavenPomFile: 'app/pom.xml'
+    goals: 'clean verify sonar:sonar'
+    options: >
+      -Dsonar.projectKey=321114110002_JAVA-CI-CD
+      -Dsonar.organization=321114110002
+      -Dsonar.host.url=https://sonarcloud.io
+      -Dsonar.login=$(SONAR_TOKEN)
+
+# 📊 Publish SonarCloud Report
+- task: SonarCloudPublish@1
+  displayName: 'Publish SonarCloud Quality Gate Result'
+  inputs:
+    pollingTimeoutSec: '300'
+
+# ✅ Publish JUnit test results
 - task: PublishTestResults@2
   displayName: 'Publish Test Results'
   inputs:
     testResultsFiles: '**/target/test-*.xml'
     testRunTitle: 'Maven Test Results'
 
+# 📦 Copy jar file to artifacts
 - task: CopyFiles@2
   displayName: 'Copy .jar files to artifact staging directory'
   inputs:
@@ -22,6 +170,7 @@ steps:
     TargetFolder: '$(Build.ArtifactStagingDirectory)'
   condition: succeeded()
 
+# 📤 Publish artifact
 - task: PublishBuildArtifacts@1
   displayName: 'Publish Artifact: drop'
   inputs:
@@ -29,3 +178,45 @@ steps:
     ArtifactName: 'drop'
     publishLocation: 'Container'
   condition: succeeded()
+
+# 🚀 Deploy to Azure Web App (Linux)
+- task: AzureWebApp@1
+  displayName: 'Deploy to Azure Web App'
+  inputs:
+    azureSubscription: 'AzureforStudents'
+    appType: 'webAppLinux'
+    appName: 'BoardGameApp'
+    package: '$(Build.ArtifactStagingDirectory)/**/*.jar'
+    runtimeStack: 'JAVA|11-java11'
+
+# 🛡️ OWASP ZAP Security Scan via Docker
+- task: Bash@3
+  displayName: 'Run OWASP ZAP Scan via Docker'
+  inputs:
+    targetType: 'inline'
+    script: |
+      echo "Pulling ZAP Docker image..."
+      docker pull softwaresecurityproject/zap-stable:latest
+
+      echo "Preparing output directory..."
+      mkdir -p $(System.DefaultWorkingDirectory)/zap
+      chmod 777 $(System.DefaultWorkingDirectory)/zap
+
+      echo "Running ZAP full scan..."
+      docker run --rm -u 0 \
+        -v $(System.DefaultWorkingDirectory)/zap:/zap/wrk/:rw \
+        softwaresecurityproject/zap-stable \
+        zap-full-scan.py \
+        -t https://boardgameapp-ayghd3hyfcbkbafd.centralindia-01.azurewebsites.net \
+        -J zap_report.json \
+        -r zap_report.html \
+        -x zap_report.xml \
+        --fail-on-error
+
+# 📥 Publish ZAP Scan Reports
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish ZAP Scan Report'
+  inputs:
+    PathtoPublish: '$(System.DefaultWorkingDirectory)/zap'
+    ArtifactName: 'ZAP-Report'
+    publishLocation: 'Container'
