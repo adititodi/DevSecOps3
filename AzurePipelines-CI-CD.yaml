@@ -241,16 +241,18 @@ variables:
 
 steps:
 
-# 🔍 SonarCloud Prepare (Built-in Task)
-- task: SonarCloudPrepare@2
+# ✅ SonarCloud Prepare
+- task: SonarCloudPrepare@1
   displayName: 'Prepare SonarCloud Analysis'
   inputs:
     SonarCloud: 'SonarQube Cloud'
     organization: '321114110002'
-    scannerMode: 'MSBuild'  # You can use Maven or MSBuild depending on your project type
+    scannerMode: 'Other'
     configMode: 'manual'
-    projectKey: '321114110002_JAVA-CI-CD'
-    projectName: 'JAVA CI CD'
+    cliProjectKey: '321114110002_JAVA-CI-CD'
+    cliProjectName: 'JAVA CI CD'
+    extraProperties: |
+      sonar.java.binaries=**/target
 
 # ⚙️ Maven Build + Test
 - task: Maven@3
@@ -264,6 +266,10 @@ steps:
     mavenVersionOption: 'Default'
     publishJUnitResults: true
     testResultsFiles: '**/target/surefire-reports/TEST-*.xml'
+
+# 📈 SonarCloud Analyze
+- task: SonarCloudAnalyze@1
+  displayName: 'Run SonarCloud Analysis'
 
 # 📊 Publish SonarCloud Quality Gate Result
 - task: SonarCloudPublish@1
