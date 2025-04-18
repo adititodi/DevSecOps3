@@ -307,7 +307,7 @@ steps:
     azureSubscription: 'AzureforStudents'
     appType: 'webAppLinux'
     appName: 'BoardGameApp'
-    package: '$(Build.ArtifactStagingDirectory)/**/*.jar'
+    package: '$(Build.ArtifactStagingDirectory)/app/target/gs-spring-boot-0.1.0.jar'
     runtimeStack: 'JAVA|11-java11'
 
 # 🛡️ OWASP ZAP Security Scan via Docker
