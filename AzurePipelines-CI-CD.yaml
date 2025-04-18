@@ -349,101 +349,95 @@ pool:
   vmImage: ubuntu-latest
 
 variables:
-  MAVEN_OPTS: "-Dmaven.repo.local=$(Pipeline.Workspace)/.m2/repository"
-  SONAR_TOKEN: "$(SONAR_TOKEN)"           # store your token securely in Library → Variables → mark secret
+  # Put this in your pipeline UI as a secret variable named SONAR_TOKEN
+  SONAR_TOKEN: '$(SONAR_TOKEN)'
 
-stages:
-  - stage: BuildAndAnalyze
-    displayName: Build & Static Analysis
-    jobs:
-      - job: Build
-        displayName: Maven Build & SonarCloud
-        steps:
-          - task: JavaToolInstaller@0
-            inputs:
-              versionSpec: '17'
-              jdkArchitectureOption: 'x64'
+steps:
+  # 🔍 SonarCloud Prepare (Maven)
+  - task: SonarCloudPrepare@1
+    displayName: 'Prepare SonarCloud Analysis'
+    inputs:
+      SonarCloud: 'SonarQube Cloud'
+      organization: '321114110002'
+      scannerMode: 'Other'
+      configMode: 'manual'
+      cliProjectKey: '321114110002_JAVA-CI-CD'
+      cliProjectName: 'JAVA CI CD'
+      extraProperties: |
+        sonar.java.binaries=**/target
 
-          - task: Maven@3
-            displayName: 'Maven: clean package'
-            inputs:
-              mavenPomFile: 'pom.xml'
-              goals: 'clean package'
-              options: '-Xmx1024m'
+  # ⚙️ Maven Build + Sonar
+  - task: Maven@3
+    displayName: 'Maven clean package & sonar:sonar'
+    inputs:
+      mavenPomFile: 'app/pom.xml'
+      goals: 'clean package sonar:sonar'
+      options: >
+        -Dsonar.login=$(SONAR_TOKEN)
+        -Dsonar.host.url=https://sonarcloud.io
 
-          - task: SonarCloudPrepare@1
-            displayName: 'Prepare SonarCloud'
-            inputs:
-              SonarCloud: 'SonarQube Cloud'
-              organization: '321114110002'
-              scannerMode: 'Other'
-              configMode: 'manual'
-              cliProjectKey: '321114110002_JAVA-CI-CD'
-              cliProjectName: 'JAVA CI CD'
-              extraProperties: |
-                sonar.java.binaries=target
+  # 📊 Publish Quality Gate
+  - task: SonarCloudPublish@1
+    displayName: 'Publish SonarCloud Quality Gate Result'
+    inputs:
+      pollingTimeoutSec: '300'
 
-          - task: SonarCloudAnalyze@1
+  # ✅ Publish JUnit test results
+  - task: PublishTestResults@2
+    displayName: 'Publish Test Results'
+    inputs:
+      testResultsFiles: '**/app/target/surefire-reports/TEST-*.xml'
+      testRunTitle: 'Maven Test Results'
 
-          - task: SonarCloudPublish@1
-            inputs:
-              pollingTimeoutSec: '300'
+  # 📦 Copy exactly your Spring Boot JAR
+  - task: CopyFiles@2
+    displayName: 'Copy JAR to staging directory'
+    inputs:
+      SourceFolder: 'app/target'
+      Contents: 'gs-spring-boot-*.jar'
+      TargetFolder: '$(Build.ArtifactStagingDirectory)'
 
-          - task: CopyFiles@2
-            displayName: 'Copy only our app jar'
-            inputs:
-              contents: 'app/target/gs-spring-boot-*.jar'
-              targetFolder: '$(Build.ArtifactStagingDirectory)'
+  # 📤 Publish the artifact
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish drop artifact'
+    inputs:
+      PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+      ArtifactName: drop
+      publishLocation: Container
 
-          - task: PublishBuildArtifacts@1
-            displayName: 'Publish drop artifact'
-            inputs:
-              PathtoPublish: '$(Build.ArtifactStagingDirectory)'
-              ArtifactName: 'drop'
+  # 🚀 Deploy to Azure Web App (Linux)
+  - task: AzureWebApp@1
+    displayName: 'Deploy to Azure Web App'
+    inputs:
+      azureSubscription: 'AzureforStudents'
+      appType: webAppLinux
+      appName: 'BoardGameApp'
+      package: '$(Build.ArtifactStagingDirectory)/gs-spring-boot-*.jar'
+      runtimeStack: 'JAVA|11-java11'
+      startupCommand: > # override so Spring Boot binds to $PORT
+        java -Dserver.port=$PORT -jar gs-spring-boot-0.1.0.jar
 
-  - stage: DeployAndScan
-    displayName: Deploy & Security Scan
-    dependsOn: BuildAndAnalyze
-    condition: succeeded()
-    jobs:
-      - deployment: DeployApp
-        displayName: Deploy to Azure + OWASP ZAP
-        environment: production
-        strategy:
-          runOnce:
-            deploy:
-              steps:
-                - download: current
-                  artifact: drop
+  # 🛡️ OWASP ZAP Security Scan via Docker
+  - task: Bash@3
+    displayName: 'Run OWASP ZAP Scan'
+    inputs:
+      targetType: inline
+      script: |
+        docker pull softwaresecurityproject/zap-stable:latest
+        mkdir -p $(System.ArtifactsDirectory)/zap
+        docker run --rm -u 0 \
+          -v $(System.ArtifactsDirectory)/zap:/zap/wrk/:rw \
+          softwaresecurityproject/zap-stable \
+          zap-full-scan.py \
+          -t https://boardgameapp-ayghd3hyfcbkbafd.centralindia-01.azurewebsites.net \
+          -J zap_report.json \
+          -r zap_report.html \
+          -x zap_report.xml \
+          --fail-on-error
 
-                - task: AzureWebApp@1
-                  displayName: 'Deploy to BoardGameApp'
-                  inputs:
-                    azureSubscription: 'AzureforStudents'
-                    appType: webAppLinux
-                    appName: 'BoardGameApp'
-                    package: '$(Pipeline.Workspace)/drop/gs-spring-boot-*.jar'
-                    runtimeStack: 'JAVA|11-java11'
-                    # **This forces Spring Boot to bind to Azure’s port**
-                    startupCommand: 'java -Dserver.port=$PORT -jar gs-spring-boot-0.1.0.jar'
-
-                - task: Bash@3
-                  displayName: 'Run OWASP ZAP full scan'
-                  inputs:
-                    targetType: inline
-                    script: |
-                      docker pull softwaresecurityproject/zap-stable:latest
-                      mkdir -p $(System.ArtifactsDirectory)/zap
-                      docker run --rm -u 0 \
-                        -v $(System.ArtifactsDirectory)/zap:/zap/wrk/:rw \
-                        softwaresecurityproject/zap-stable \
-                        zap-full-scan.py \
-                        -t https://boardgameapp-ayghd3hyfcbkbafd.centralindia-01.azurewebsites.net \
-                        -J zap_report.json -r zap_report.html -x zap_report.xml \
-                        --fail-on-error
-
-                - task: PublishBuildArtifacts@1
-                  displayName: 'Publish ZAP Report'
-                  inputs:
-                    PathtoPublish: '$(System.ArtifactsDirectory)/zap'
-                    ArtifactName: 'ZAP-Report'
+  # 📥 Publish ZAP report
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish ZAP Report'
+    inputs:
+      PathtoPublish: '$(System.ArtifactsDirectory)/zap'
+      ArtifactName: 'ZAP-Report'
